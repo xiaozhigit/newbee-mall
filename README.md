@@ -190,7 +190,7 @@ newbee-mall 项目是一套电商系统，包括 newbee-mall 商城系统及 new
 
 ![newbee-mall-info](https://newbee-mall.oss-cn-beijing.aliyuncs.com/poster/store/newbee-mall-info-3.png)
 
-## 感谢
+##  感谢
 
 - [spring-projects](https://github.com/spring-projects/spring-boot)
 - [thymeleaf](https://github.com/thymeleaf/thymeleaf)
