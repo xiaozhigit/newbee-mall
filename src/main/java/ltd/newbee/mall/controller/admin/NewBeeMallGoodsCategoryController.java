@@ -1,6 +1,15 @@
+/**
+ * 严肃声明：
+ * 开源版本请务必保留此注释头信息，若删除我方将保留所有法律责任追究！
+ * 本系统已申请软件著作权，受国家版权局知识产权以及国家计算机软件著作权保护！
+ * 可正常分享和学习源码，不得用于违法犯罪活动，违者必究！
+ * Copyright (c) 2019-2020 十三 all rights reserved.
+ * 版权所有，侵权必究！
+ */
 package ltd.newbee.mall.controller.admin;
 
 import ltd.newbee.mall.common.NewBeeMallCategoryLevelEnum;
+import ltd.newbee.mall.common.NewBeeMallException;
 import ltd.newbee.mall.common.ServiceResultEnum;
 import ltd.newbee.mall.entity.GoodsCategory;
 import ltd.newbee.mall.service.NewBeeMallCategoryService;
@@ -9,6 +18,7 @@ import ltd.newbee.mall.util.Result;
 import ltd.newbee.mall.util.ResultGenerator;
 import org.springframework.stereotype.Controller;
 import org.springframework.util.CollectionUtils;
+import org.springframework.util.ObjectUtils;
 import org.springframework.util.StringUtils;
 import org.springframework.web.bind.annotation.*;
 
@@ -32,7 +42,7 @@ public class NewBeeMallGoodsCategoryController {
     @GetMapping("/categories")
     public String categoriesPage(HttpServletRequest request, @RequestParam("categoryLevel") Byte categoryLevel, @RequestParam("parentId") Long parentId, @RequestParam("backParentId") Long backParentId) {
         if (categoryLevel == null || categoryLevel < 1 || categoryLevel > 3) {
-            return "error/error_5xx";
+            NewBeeMallException.fail("参数异常");
         }
         request.setAttribute("path", "newbee_mall_category");
         request.setAttribute("parentId", parentId);
@@ -47,7 +57,7 @@ public class NewBeeMallGoodsCategoryController {
     @RequestMapping(value = "/categories/list", method = RequestMethod.GET)
     @ResponseBody
     public Result list(@RequestParam Map<String, Object> params) {
-        if (StringUtils.isEmpty(params.get("page")) || StringUtils.isEmpty(params.get("limit")) || StringUtils.isEmpty(params.get("categoryLevel")) || StringUtils.isEmpty(params.get("parentId"))) {
+        if (ObjectUtils.isEmpty(params.get("page")) || ObjectUtils.isEmpty(params.get("limit")) || ObjectUtils.isEmpty(params.get("categoryLevel")) || ObjectUtils.isEmpty(params.get("parentId"))) {
             return ResultGenerator.genFailResult("参数异常！");
         }
         PageQueryUtil pageUtil = new PageQueryUtil(params);
@@ -68,7 +78,7 @@ public class NewBeeMallGoodsCategoryController {
         if (category == null || category.getCategoryLevel() == NewBeeMallCategoryLevelEnum.LEVEL_THREE.getLevel()) {
             return ResultGenerator.genFailResult("参数异常！");
         }
-        Map categoryResult = new HashMap(2);
+        Map categoryResult = new HashMap(4);
         if (category.getCategoryLevel() == NewBeeMallCategoryLevelEnum.LEVEL_ONE.getLevel()) {
             //如果是一级分类则返回当前一级分类下的所有二级分类，以及二级分类列表中第一条数据下的所有三级分类列表
             //查询一级分类列表中第一个实体的所有二级分类
@@ -95,7 +105,7 @@ public class NewBeeMallGoodsCategoryController {
     @ResponseBody
     public Result save(@RequestBody GoodsCategory goodsCategory) {
         if (Objects.isNull(goodsCategory.getCategoryLevel())
-                || StringUtils.isEmpty(goodsCategory.getCategoryName())
+                || !StringUtils.hasText(goodsCategory.getCategoryName())
                 || Objects.isNull(goodsCategory.getParentId())
                 || Objects.isNull(goodsCategory.getCategoryRank())) {
             return ResultGenerator.genFailResult("参数异常！");
@@ -117,7 +127,7 @@ public class NewBeeMallGoodsCategoryController {
     public Result update(@RequestBody GoodsCategory goodsCategory) {
         if (Objects.isNull(goodsCategory.getCategoryId())
                 || Objects.isNull(goodsCategory.getCategoryLevel())
-                || StringUtils.isEmpty(goodsCategory.getCategoryName())
+                || !StringUtils.hasText(goodsCategory.getCategoryName())
                 || Objects.isNull(goodsCategory.getParentId())
                 || Objects.isNull(goodsCategory.getCategoryRank())) {
             return ResultGenerator.genFailResult("参数异常！");

@@ -1,3 +1,11 @@
+/**
+ * 严肃声明：
+ * 开源版本请务必保留此注释头信息，若删除我方将保留所有法律责任追究！
+ * 本系统已申请软件著作权，受国家版权局知识产权以及国家计算机软件著作权保护！
+ * 可正常分享和学习源码，不得用于违法犯罪活动，违者必究！
+ * Copyright (c) 2019-2020 十三 all rights reserved.
+ * 版权所有，侵权必究！
+ */
 package ltd.newbee.mall.service.impl;
 
 import ltd.newbee.mall.common.ServiceResultEnum;
@@ -15,6 +23,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.util.CollectionUtils;
 
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -37,7 +46,12 @@ public class NewBeeMallIndexConfigServiceImpl implements NewBeeMallIndexConfigSe
 
     @Override
     public String saveIndexConfig(IndexConfig indexConfig) {
-        //todo 判断是否存在该商品
+        if (goodsMapper.selectByPrimaryKey(indexConfig.getGoodsId()) == null) {
+            return ServiceResultEnum.GOODS_NOT_EXIST.getResult();
+        }
+        if (indexConfigMapper.selectByTypeAndGoodsId(indexConfig.getConfigType(), indexConfig.getGoodsId()) != null) {
+            return ServiceResultEnum.SAME_INDEX_CONFIG_EXIST.getResult();
+        }
         if (indexConfigMapper.insertSelective(indexConfig) > 0) {
             return ServiceResultEnum.SUCCESS.getResult();
         }
@@ -46,11 +60,19 @@ public class NewBeeMallIndexConfigServiceImpl implements NewBeeMallIndexConfigSe
 
     @Override
     public String updateIndexConfig(IndexConfig indexConfig) {
-        //todo 判断是否存在该商品
+        if (goodsMapper.selectByPrimaryKey(indexConfig.getGoodsId()) == null) {
+            return ServiceResultEnum.GOODS_NOT_EXIST.getResult();
+        }
         IndexConfig temp = indexConfigMapper.selectByPrimaryKey(indexConfig.getConfigId());
         if (temp == null) {
             return ServiceResultEnum.DATA_NOT_EXIST.getResult();
         }
+        IndexConfig temp2 = indexConfigMapper.selectByTypeAndGoodsId(indexConfig.getConfigType(), indexConfig.getGoodsId());
+        if (temp2 != null && !temp2.getConfigId().equals(indexConfig.getConfigId())) {
+            //goodsId相同且不同id 不能继续修改
+            return ServiceResultEnum.SAME_INDEX_CONFIG_EXIST.getResult();
+        }
+        indexConfig.setUpdateTime(new Date());
         if (indexConfigMapper.updateByPrimaryKeySelective(indexConfig) > 0) {
             return ServiceResultEnum.SUCCESS.getResult();
         }

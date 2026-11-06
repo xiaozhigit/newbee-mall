@@ -1,3 +1,11 @@
+/**
+ * 严肃声明：
+ * 开源版本请务必保留此注释头信息，若删除我方将保留所有法律责任追究！
+ * 本系统已申请软件著作权，受国家版权局知识产权以及国家计算机软件著作权保护！
+ * 可正常分享和学习源码，不得用于违法犯罪活动，违者必究！
+ * Copyright (c) 2019-2020 十三 all rights reserved.
+ * 版权所有，侵权必究！
+ */
 package ltd.newbee.mall.service.impl;
 
 import ltd.newbee.mall.common.Constants;
@@ -26,14 +34,11 @@ public class NewBeeMallShoppingCartServiceImpl implements NewBeeMallShoppingCart
     @Autowired
     private NewBeeMallGoodsMapper newBeeMallGoodsMapper;
 
-    //todo 修改session中购物项数量
-
     @Override
     public String saveNewBeeMallCartItem(NewBeeMallShoppingCartItem newBeeMallShoppingCartItem) {
         NewBeeMallShoppingCartItem temp = newBeeMallShoppingCartItemMapper.selectByUserIdAndGoodsId(newBeeMallShoppingCartItem.getUserId(), newBeeMallShoppingCartItem.getGoodsId());
         if (temp != null) {
             //已存在则修改该记录
-            //todo count = tempCount + 1
             temp.setGoodsCount(newBeeMallShoppingCartItem.getGoodsCount());
             return updateNewBeeMallCartItem(temp);
         }
@@ -68,8 +73,14 @@ public class NewBeeMallShoppingCartServiceImpl implements NewBeeMallShoppingCart
         if (newBeeMallShoppingCartItem.getGoodsCount() > Constants.SHOPPING_CART_ITEM_LIMIT_NUMBER) {
             return ServiceResultEnum.SHOPPING_CART_ITEM_LIMIT_NUMBER_ERROR.getResult();
         }
-        //todo 数量相同不会进行修改
-        //todo userId不同不能修改
+        //当前登录账号的userId与待修改的cartItem中userId不同，返回错误
+        if (!newBeeMallShoppingCartItemUpdate.getUserId().equals(newBeeMallShoppingCartItem.getUserId())) {
+            return ServiceResultEnum.NO_PERMISSION_ERROR.getResult();
+        }
+        //数值相同，则不执行数据操作
+        if (newBeeMallShoppingCartItem.getGoodsCount().equals(newBeeMallShoppingCartItemUpdate.getGoodsCount())) {
+            return ServiceResultEnum.SUCCESS.getResult();
+        }
         newBeeMallShoppingCartItemUpdate.setGoodsCount(newBeeMallShoppingCartItem.getGoodsCount());
         newBeeMallShoppingCartItemUpdate.setUpdateTime(new Date());
         //修改记录
@@ -85,9 +96,16 @@ public class NewBeeMallShoppingCartServiceImpl implements NewBeeMallShoppingCart
     }
 
     @Override
-    public Boolean deleteById(Long newBeeMallShoppingCartItemId) {
-        //todo userId不同不能删除
-        return newBeeMallShoppingCartItemMapper.deleteByPrimaryKey(newBeeMallShoppingCartItemId) > 0;
+    public Boolean deleteById(Long shoppingCartItemId, Long userId) {
+        NewBeeMallShoppingCartItem newBeeMallShoppingCartItem = newBeeMallShoppingCartItemMapper.selectByPrimaryKey(shoppingCartItemId);
+        if (newBeeMallShoppingCartItem == null) {
+            return false;
+        }
+        //userId不同不能删除
+        if (!userId.equals(newBeeMallShoppingCartItem.getUserId())) {
+            return false;
+        }
+        return newBeeMallShoppingCartItemMapper.deleteByPrimaryKey(shoppingCartItemId) > 0;
     }
 
     @Override

@@ -1,3 +1,4 @@
+<!-- Copyright (c) 2019-2020 十三 all rights reserved. -->
 <!DOCTYPE html>
 <html lang="en" xmlns:th="http://www.thymeleaf.org">
 <head th:replace="mall/header::head-fragment('NewBee商城-订单列表','my-orders')">
@@ -26,8 +27,13 @@
                     <div class="box-bd">
                         <div id="J_orderList">
                             <ul class="order-list">
+                                <th:block th:if="${#lists.isEmpty(orderPageResult.list)}">
+                                    <img style="margin-top: 16px;"
+                                         th:src="@{/mall/image/null-content.png}">
+                                    <small><a th:href="@{/index}">&nbsp;&nbsp;&nbsp;&nbsp;去购物&gt;</a>
+                                    </small>
+                                </th:block>
                                 <th:block th:unless="${#lists.isEmpty(orderPageResult.list)}">
-                                    <!-- todo 无订单时 换背景图为无订单 -->
                                     <th:block th:each="order : ${orderPageResult.list}">
 
                                         <li class="uc-order-item uc-order-item-list">
@@ -48,13 +54,11 @@
                                             <table class="order-detail-table">
                                                 <thead>
                                                 <tr>
-                                                    <th class="col-main"><p class="caption-info"
-                                                                            th:text="${#dates.format(order.createTime, 'yyyy-MM-dd HH:mm:ss')}">
-                                                        02月07日<span
-                                                            class="sep">|</span>订单号：<a
-                                                            href="##"
-                                                            th:text="${order.orderNo}">201908121807</a><span
-                                                            class="sep">|</span>在线支付</p></th>
+                                                    <th class="col-main"><p class="caption-info">
+                                                        下单时间：<th:block th:text="${#dates.format(order.createTime, 'yyyy-MM-dd HH:mm:ss')}">02月07日</th:block>
+                                                        <span class="sep">|</span>订单号：<a
+                                                            th:href="@{${'/orders/'+order.orderNo}}"
+                                                            th:text="${order.orderNo}">201908121807</a></p></th>
                                                     <th class="col-sub"><p class="caption-price">应付金额：<span
                                                             class="num"
                                                             th:text="${order.totalPrice+'.00'}">1299.00</span>元
@@ -97,29 +101,31 @@
                         </th:block>
                         </ul>
                     </div>
-                    <div id="J_orderListPages">
-                        <div class="newbee-pagenavi">
-                            <th:block th:if="${orderPageResult.currPage-2 >=1}"><a
-                                    class="numbers"
-                                    th:href="@{'/orders?page=' + ${orderPageResult.currPage-2}}"
-                                    th:text="${orderPageResult.currPage -2}">1</a>
-                            </th:block>
-                            <th:block th:if="${orderPageResult.currPage-1 >=1}"><a
-                                    class="numbers"
-                                    th:href="@{'/orders?page=' + ${orderPageResult.currPage-1}}"
-                                    th:text="${orderPageResult.currPage -1}">1</a>
-                            </th:block>
-                            <a href="##" class="numbers current" th:text="${orderPageResult.currPage}">1</a>
-                            <th:block th:if="${orderPageResult.currPage+1<=orderPageResult.totalPage}"><a
-                                    class="numbers"
-                                    th:href="@{'/orders?page=' + ${orderPageResult.currPage+1}}"
-                                    th:text="${orderPageResult.currPage +1}">1</a></th:block>
-                            <th:block th:if="${orderPageResult.currPage+2<=orderPageResult.totalPage}"><a
-                                    class="numbers"
-                                    th:href="@{'/orders?page=' + ${orderPageResult.currPage+2}}"
-                                    th:text="${orderPageResult.currPage +2}">1</a></th:block>
+                    <th:block th:unless="${#lists.isEmpty(orderPageResult.list)}">
+                        <div id="J_orderListPages">
+                            <div class="newbee-pagenavi">
+                                <th:block th:if="${orderPageResult.currPage-2 >=1}"><a
+                                        class="numbers"
+                                        th:href="@{'/orders?page=' + ${orderPageResult.currPage-2}}"
+                                        th:text="${orderPageResult.currPage -2}">1</a>
+                                </th:block>
+                                <th:block th:if="${orderPageResult.currPage-1 >=1}"><a
+                                        class="numbers"
+                                        th:href="@{'/orders?page=' + ${orderPageResult.currPage-1}}"
+                                        th:text="${orderPageResult.currPage -1}">1</a>
+                                </th:block>
+                                <a href="##" class="numbers current" th:text="${orderPageResult.currPage}">1</a>
+                                <th:block th:if="${orderPageResult.currPage+1<=orderPageResult.totalPage}"><a
+                                        class="numbers"
+                                        th:href="@{'/orders?page=' + ${orderPageResult.currPage+1}}"
+                                        th:text="${orderPageResult.currPage +1}">1</a></th:block>
+                                <th:block th:if="${orderPageResult.currPage+2<=orderPageResult.totalPage}"><a
+                                        class="numbers"
+                                        th:href="@{'/orders?page=' + ${orderPageResult.currPage+2}}"
+                                        th:text="${orderPageResult.currPage +2}">1</a></th:block>
+                            </div>
                         </div>
-                    </div>
+                    </th:block>
                 </div>
             </div>
         </div>

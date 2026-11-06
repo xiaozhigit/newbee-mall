@@ -73,8 +73,9 @@ function categoryManage() {
         categoryLevel = categoryLevel + 1;
         window.location.href = '/admin/categories?categoryLevel=' + categoryLevel + '&parentId=' + id + '&backParentId=' + parentId;
     } else {
-        swal("无下级分类", {
-            icon: "warning",
+        Swal.fire({
+            text: "无下级分类",
+            icon: "warning",iconColor:"#dea32c",
         });
     }
 }
@@ -89,8 +90,9 @@ function categoryBack() {
         categoryLevel = categoryLevel - 1;
         window.location.href = '/admin/categories?categoryLevel=' + categoryLevel + '&parentId=' + backParentId + '&backParentId=0';
     } else {
-        swal("无上级分类", {
-            icon: "warning",
+        Swal.fire({
+            text: "无上级分类",
+            icon: "warning",iconColor:"#dea32c",
         });
     }
 }
@@ -131,21 +133,24 @@ $('#saveButton').click(function () {
             success: function (result) {
                 if (result.resultCode == 200) {
                     $('#categoryModal').modal('hide');
-                    swal("保存成功", {
-                        icon: "success",
+                    Swal.fire({
+                        text: "保存成功",
+                        icon: "success",iconColor:"#1d953f",
                     });
                     reload();
                 } else {
                     $('#categoryModal').modal('hide');
-                    swal(result.message, {
-                        icon: "error",
+                    Swal.fire({
+                        text: result.message,
+                        icon: "error",iconColor:"#f05b72",
                     });
                 }
                 ;
             },
             error: function () {
-                swal("操作失败", {
-                    icon: "error",
+                Swal.fire({
+                    text: "操作失败",
+                    icon: "error",iconColor:"#f05b72",
                 });
             }
         });
@@ -167,27 +172,25 @@ function categoryEdit() {
 }
 
 /**
- * 分类的删除会牵涉到多级分类的修改和商品数据的修改，因此暂时就不开放删除功能了，
+ * 分类的删除会牵涉到多级分类的修改和商品数据的修改，请谨慎删除分类数据，
  * 如果在商城页面不想显示相关分类可以通过调整rank值来调整显示顺序，
  * 不过代码我也写了一部分，如果想保留删除功能的话可以在此代码的基础上进行修改。
  */
 function deleteCagegory() {
-    swal("未开放", {
-        icon: "warning",
-    });
-    return;
+
     var ids = getSelectedRows();
     if (ids == null) {
         return;
     }
-    swal({
+    Swal.fire({
         title: "确认弹框",
         text: "确认要删除数据吗?",
-        icon: "warning",
-        buttons: true,
-        dangerMode: true,
+        icon: "warning",iconColor:"#dea32c",
+        showCancelButton: true,
+        confirmButtonText: '确认',
+        cancelButtonText: '取消'
     }).then((flag) => {
-            if (flag) {
+            if (flag.value) {
                 $.ajax({
                     type: "POST",
                     url: "/admin/categories/delete",
@@ -195,13 +198,15 @@ function deleteCagegory() {
                     data: JSON.stringify(ids),
                     success: function (r) {
                         if (r.resultCode == 200) {
-                            swal("删除成功", {
-                                icon: "success",
+                            Swal.fire({
+                                text: "删除成功",
+                                icon: "success",iconColor:"#1d953f",
                             });
                             $("#jqGrid").trigger("reloadGrid");
                         } else {
-                            swal(r.message, {
-                                icon: "error",
+                            Swal.fire({
+                                text: r.message,
+                                icon: "error",iconColor:"#f05b72",
                             });
                         }
                     }

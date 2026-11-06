@@ -1,18 +1,23 @@
+/**
+ * 严肃声明：
+ * 开源版本请务必保留此注释头信息，若删除我方将保留所有法律责任追究！
+ * 本系统已申请软件著作权，受国家版权局知识产权以及国家计算机软件著作权保护！
+ * 可正常分享和学习源码，不得用于违法犯罪活动，违者必究！
+ * Copyright (c) 2019-2020 十三 all rights reserved.
+ * 版权所有，侵权必究！
+ */
 package ltd.newbee.mall.service.impl;
 
 import ltd.newbee.mall.common.Constants;
 import ltd.newbee.mall.common.ServiceResultEnum;
 import ltd.newbee.mall.controller.vo.NewBeeMallUserVO;
 import ltd.newbee.mall.dao.MallUserMapper;
-import ltd.newbee.mall.dao.NewBeeMallShoppingCartItemMapper;
 import ltd.newbee.mall.entity.MallUser;
 import ltd.newbee.mall.service.NewBeeMallUserService;
-import ltd.newbee.mall.util.BeanUtil;
-import ltd.newbee.mall.util.MD5Util;
-import ltd.newbee.mall.util.PageQueryUtil;
-import ltd.newbee.mall.util.PageResult;
+import ltd.newbee.mall.util.*;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.util.StringUtils;
 
 import javax.servlet.http.HttpSession;
 import java.util.List;
@@ -70,15 +75,21 @@ public class NewBeeMallUserServiceImpl implements NewBeeMallUserService {
 
     @Override
     public NewBeeMallUserVO updateUserInfo(MallUser mallUser, HttpSession httpSession) {
-        MallUser user = mallUserMapper.selectByPrimaryKey(mallUser.getUserId());
-        if (user != null) {
-            user.setNickName(mallUser.getNickName());
-            user.setAddress(mallUser.getAddress());
-            user.setIntroduceSign(mallUser.getIntroduceSign());
-            if (mallUserMapper.updateByPrimaryKeySelective(user) > 0) {
+        NewBeeMallUserVO userTemp = (NewBeeMallUserVO) httpSession.getAttribute(Constants.MALL_USER_SESSION_KEY);
+        MallUser userFromDB = mallUserMapper.selectByPrimaryKey(userTemp.getUserId());
+        if (userFromDB != null) {
+            if (StringUtils.hasText(mallUser.getNickName())) {
+                userFromDB.setNickName(NewBeeMallUtils.cleanString(mallUser.getNickName()));
+            }
+            if (StringUtils.hasText(mallUser.getAddress())) {
+                userFromDB.setAddress(NewBeeMallUtils.cleanString(mallUser.getAddress()));
+            }
+            if (StringUtils.hasText(mallUser.getIntroduceSign())) {
+                userFromDB.setIntroduceSign(NewBeeMallUtils.cleanString(mallUser.getIntroduceSign()));
+            }
+            if (mallUserMapper.updateByPrimaryKeySelective(userFromDB) > 0) {
                 NewBeeMallUserVO newBeeMallUserVO = new NewBeeMallUserVO();
-                user = mallUserMapper.selectByPrimaryKey(mallUser.getUserId());
-                BeanUtil.copyProperties(user, newBeeMallUserVO);
+                BeanUtil.copyProperties(userFromDB, newBeeMallUserVO);
                 httpSession.setAttribute(Constants.MALL_USER_SESSION_KEY, newBeeMallUserVO);
                 return newBeeMallUserVO;
             }

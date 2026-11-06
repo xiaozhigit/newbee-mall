@@ -1,3 +1,11 @@
+/**
+ * 严肃声明：
+ * 开源版本请务必保留此注释头信息，若删除我方将保留所有法律责任追究！
+ * 本系统已申请软件著作权，受国家版权局知识产权以及国家计算机软件著作权保护！
+ * 可正常分享和学习源码，不得用于违法犯罪活动，违者必究！
+ * Copyright (c) 2019-2020 十三 all rights reserved.
+ * 版权所有，侵权必究！
+ */
 package ltd.newbee.mall.service.impl;
 
 import ltd.newbee.mall.common.*;
@@ -80,7 +88,7 @@ public class NewBeeMallOrderServiceImpl implements NewBeeMallOrderService {
                     errorOrderNos += newBeeMallOrder.getOrderNo() + " ";
                 }
             }
-            if (StringUtils.isEmpty(errorOrderNos)) {
+            if (!StringUtils.hasText(errorOrderNos)) {
                 //订单状态正常 可以执行配货完成操作 修改订单状态和更新时间
                 if (newBeeMallOrderMapper.checkDone(Arrays.asList(ids)) > 0) {
                     return ServiceResultEnum.SUCCESS.getResult();
@@ -116,7 +124,7 @@ public class NewBeeMallOrderServiceImpl implements NewBeeMallOrderService {
                     errorOrderNos += newBeeMallOrder.getOrderNo() + " ";
                 }
             }
-            if (StringUtils.isEmpty(errorOrderNos)) {
+            if (!StringUtils.hasText(errorOrderNos)) {
                 //订单状态正常 可以执行出库操作 修改订单状态和更新时间
                 if (newBeeMallOrderMapper.checkOut(Arrays.asList(ids)) > 0) {
                     return ServiceResultEnum.SUCCESS.getResult();
@@ -154,9 +162,9 @@ public class NewBeeMallOrderServiceImpl implements NewBeeMallOrderService {
                     errorOrderNos += newBeeMallOrder.getOrderNo() + " ";
                 }
             }
-            if (StringUtils.isEmpty(errorOrderNos)) {
-                //订单状态正常 可以执行关闭操作 修改订单状态和更新时间
-                if (newBeeMallOrderMapper.closeOrder(Arrays.asList(ids), NewBeeMallOrderStatusEnum.ORDER_CLOSED_BY_JUDGE.getOrderStatus()) > 0) {
+            if (!StringUtils.hasText(errorOrderNos)) {
+                //订单状态正常 可以执行关闭操作 修改订单状态和更新时间&&恢复库存
+                if (newBeeMallOrderMapper.closeOrder(Arrays.asList(ids), NewBeeMallOrderStatusEnum.ORDER_CLOSED_BY_JUDGE.getOrderStatus()) > 0 && recoverStockNum(Arrays.asList(ids))) {
                     return ServiceResultEnum.SUCCESS.getResult();
                 } else {
                     return ServiceResultEnum.DB_ERROR.getResult();
@@ -224,7 +232,7 @@ public class NewBeeMallOrderServiceImpl implements NewBeeMallOrderService {
                     NewBeeMallException.fail(ServiceResultEnum.ORDER_PRICE_ERROR.getResult());
                 }
                 newBeeMallOrder.setTotalPrice(priceTotal);
-                //todo 订单body字段，用来作为生成支付单描述信息，暂时未接入第三方支付接口，故该字段暂时设为空字符串
+                //订单body字段，用来作为生成支付单描述信息，暂时未接入第三方支付接口，故该字段暂时设为空字符串
                 String extraInfo = "";
                 newBeeMallOrder.setExtraInfo(extraInfo);
                 //生成订单项并保存订单项纪录
@@ -257,21 +265,25 @@ public class NewBeeMallOrderServiceImpl implements NewBeeMallOrderService {
     @Override
     public NewBeeMallOrderDetailVO getOrderDetailByOrderNo(String orderNo, Long userId) {
         NewBeeMallOrder newBeeMallOrder = newBeeMallOrderMapper.selectByOrderNo(orderNo);
-        if (newBeeMallOrder != null) {
-            //todo 验证是否是当前userId下的订单，否则报错
-            List<NewBeeMallOrderItem> orderItems = newBeeMallOrderItemMapper.selectByOrderId(newBeeMallOrder.getOrderId());
-            //获取订单项数据
-            if (!CollectionUtils.isEmpty(orderItems)) {
-                List<NewBeeMallOrderItemVO> newBeeMallOrderItemVOS = BeanUtil.copyList(orderItems, NewBeeMallOrderItemVO.class);
-                NewBeeMallOrderDetailVO newBeeMallOrderDetailVO = new NewBeeMallOrderDetailVO();
-                BeanUtil.copyProperties(newBeeMallOrder, newBeeMallOrderDetailVO);
-                newBeeMallOrderDetailVO.setOrderStatusString(NewBeeMallOrderStatusEnum.getNewBeeMallOrderStatusEnumByStatus(newBeeMallOrderDetailVO.getOrderStatus()).getName());
-                newBeeMallOrderDetailVO.setPayTypeString(PayTypeEnum.getPayTypeEnumByType(newBeeMallOrderDetailVO.getPayType()).getName());
-                newBeeMallOrderDetailVO.setNewBeeMallOrderItemVOS(newBeeMallOrderItemVOS);
-                return newBeeMallOrderDetailVO;
-            }
+        if (newBeeMallOrder == null) {
+            NewBeeMallException.fail(ServiceResultEnum.ORDER_NOT_EXIST_ERROR.getResult());
         }
-        return null;
+        //验证是否是当前userId下的订单，否则报错
+        if (!userId.equals(newBeeMallOrder.getUserId())) {
+            NewBeeMallException.fail(ServiceResultEnum.NO_PERMISSION_ERROR.getResult());
+        }
+        List<NewBeeMallOrderItem> orderItems = newBeeMallOrderItemMapper.selectByOrderId(newBeeMallOrder.getOrderId());
+        //获取订单项数据
+        if (CollectionUtils.isEmpty(orderItems)) {
+            NewBeeMallException.fail(ServiceResultEnum.ORDER_ITEM_NOT_EXIST_ERROR.getResult());
+        }
+        List<NewBeeMallOrderItemVO> newBeeMallOrderItemVOS = BeanUtil.copyList(orderItems, NewBeeMallOrderItemVO.class);
+        NewBeeMallOrderDetailVO newBeeMallOrderDetailVO = new NewBeeMallOrderDetailVO();
+        BeanUtil.copyProperties(newBeeMallOrder, newBeeMallOrderDetailVO);
+        newBeeMallOrderDetailVO.setOrderStatusString(NewBeeMallOrderStatusEnum.getNewBeeMallOrderStatusEnumByStatus(newBeeMallOrderDetailVO.getOrderStatus()).getName());
+        newBeeMallOrderDetailVO.setPayTypeString(PayTypeEnum.getPayTypeEnumByType(newBeeMallOrderDetailVO.getPayType()).getName());
+        newBeeMallOrderDetailVO.setNewBeeMallOrderItemVOS(newBeeMallOrderItemVOS);
+        return newBeeMallOrderDetailVO;
     }
 
     @Override
@@ -311,12 +323,23 @@ public class NewBeeMallOrderServiceImpl implements NewBeeMallOrderService {
     }
 
     @Override
+    @Transactional
     public String cancelOrder(String orderNo, Long userId) {
         NewBeeMallOrder newBeeMallOrder = newBeeMallOrderMapper.selectByOrderNo(orderNo);
         if (newBeeMallOrder != null) {
-            //todo 验证是否是当前userId下的订单，否则报错
-            //todo 订单状态判断
-            if (newBeeMallOrderMapper.closeOrder(Collections.singletonList(newBeeMallOrder.getOrderId()), NewBeeMallOrderStatusEnum.ORDER_CLOSED_BY_MALLUSER.getOrderStatus()) > 0) {
+            //验证是否是当前userId下的订单，否则报错
+            if (!userId.equals(newBeeMallOrder.getUserId())) {
+                NewBeeMallException.fail(ServiceResultEnum.NO_PERMISSION_ERROR.getResult());
+            }
+            //订单状态判断
+            if (newBeeMallOrder.getOrderStatus().intValue() == NewBeeMallOrderStatusEnum.ORDER_SUCCESS.getOrderStatus()
+                    || newBeeMallOrder.getOrderStatus().intValue() == NewBeeMallOrderStatusEnum.ORDER_CLOSED_BY_MALLUSER.getOrderStatus()
+                    || newBeeMallOrder.getOrderStatus().intValue() == NewBeeMallOrderStatusEnum.ORDER_CLOSED_BY_EXPIRED.getOrderStatus()
+                    || newBeeMallOrder.getOrderStatus().intValue() == NewBeeMallOrderStatusEnum.ORDER_CLOSED_BY_JUDGE.getOrderStatus()) {
+                return ServiceResultEnum.ORDER_STATUS_ERROR.getResult();
+            }
+            //修改订单状态&&恢复库存
+            if (newBeeMallOrderMapper.closeOrder(Collections.singletonList(newBeeMallOrder.getOrderId()), NewBeeMallOrderStatusEnum.ORDER_CLOSED_BY_MALLUSER.getOrderStatus()) > 0 && recoverStockNum(Collections.singletonList(newBeeMallOrder.getOrderId()))) {
                 return ServiceResultEnum.SUCCESS.getResult();
             } else {
                 return ServiceResultEnum.DB_ERROR.getResult();
@@ -329,8 +352,14 @@ public class NewBeeMallOrderServiceImpl implements NewBeeMallOrderService {
     public String finishOrder(String orderNo, Long userId) {
         NewBeeMallOrder newBeeMallOrder = newBeeMallOrderMapper.selectByOrderNo(orderNo);
         if (newBeeMallOrder != null) {
-            //todo 验证是否是当前userId下的订单，否则报错
-            //todo 订单状态判断
+            //验证是否是当前userId下的订单，否则报错
+            if (!userId.equals(newBeeMallOrder.getUserId())) {
+                return ServiceResultEnum.NO_PERMISSION_ERROR.getResult();
+            }
+            //订单状态判断 非出库状态下不进行修改操作
+            if (newBeeMallOrder.getOrderStatus().intValue() != NewBeeMallOrderStatusEnum.ORDER_EXPRESS.getOrderStatus()) {
+                return ServiceResultEnum.ORDER_STATUS_ERROR.getResult();
+            }
             newBeeMallOrder.setOrderStatus((byte) NewBeeMallOrderStatusEnum.ORDER_SUCCESS.getOrderStatus());
             newBeeMallOrder.setUpdateTime(new Date());
             if (newBeeMallOrderMapper.updateByPrimaryKeySelective(newBeeMallOrder) > 0) {
@@ -346,8 +375,11 @@ public class NewBeeMallOrderServiceImpl implements NewBeeMallOrderService {
     public String paySuccess(String orderNo, int payType) {
         NewBeeMallOrder newBeeMallOrder = newBeeMallOrderMapper.selectByOrderNo(orderNo);
         if (newBeeMallOrder != null) {
-            //todo 订单状态判断 非待支付状态下不进行修改操作
-            newBeeMallOrder.setOrderStatus((byte) NewBeeMallOrderStatusEnum.OREDER_PAID.getOrderStatus());
+            //订单状态判断 非待支付状态下不进行修改操作
+            if (newBeeMallOrder.getOrderStatus().intValue() != NewBeeMallOrderStatusEnum.ORDER_PRE_PAY.getOrderStatus()) {
+                return ServiceResultEnum.ORDER_STATUS_ERROR.getResult();
+            }
+            newBeeMallOrder.setOrderStatus((byte) NewBeeMallOrderStatusEnum.ORDER_PAID.getOrderStatus());
             newBeeMallOrder.setPayType((byte) payType);
             newBeeMallOrder.setPayStatus((byte) PayStatusEnum.PAY_SUCCESS.getPayStatus());
             newBeeMallOrder.setPayTime(new Date());
@@ -373,5 +405,25 @@ public class NewBeeMallOrderServiceImpl implements NewBeeMallOrderService {
             }
         }
         return null;
+    }
+
+    /**
+     * 恢复库存
+     * @param orderIds
+     * @return
+     */
+    public Boolean recoverStockNum(List<Long> orderIds) {
+        //查询对应的订单项
+        List<NewBeeMallOrderItem> newBeeMallOrderItems = newBeeMallOrderItemMapper.selectByOrderIds(orderIds);
+        //获取对应的商品id和商品数量并赋值到StockNumDTO对象中
+        List<StockNumDTO> stockNumDTOS = BeanUtil.copyList(newBeeMallOrderItems, StockNumDTO.class);
+        //执行恢复库存的操作
+        int updateStockNumResult = newBeeMallGoodsMapper.recoverStockNum(stockNumDTOS);
+        if (updateStockNumResult < 1) {
+            NewBeeMallException.fail(ServiceResultEnum.CLOSE_ORDER_ERROR.getResult());
+            return false;
+        } else {
+            return true;
+        }
     }
 }
